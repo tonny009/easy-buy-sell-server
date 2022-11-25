@@ -70,6 +70,24 @@ async function run() {
             res.send(products);
         });
 
+        // get type wise users-----
+        app.get('/users', verifyJWT, verifyAdmin, async (req, res) => {
+            var query = {};
+            if (req.query.role) {
+                query = { role: req.query.role };
+            }
+            const users = await usersCollection.find(query).toArray();
+            res.send(users);
+        });
+
+        // get all users--------
+        // app.get('/users', async (req, res) => {
+        //     const query = {}
+        //     const cursor = usersCollection.find(query)
+        //     const users = await cursor.toArray()
+        //     res.send(users)
+        // })
+
         // Get Single category all products
         // app.get('/home/:id', async (req, res) => {
         //     const id = req.params.id
@@ -127,12 +145,16 @@ async function run() {
             res.send(user)
         })
 
-        // get all users--------
-        app.get('/users', verifyJWT, verifyAdmin, async (req, res) => {
-            const query = {}
-            const cursor = usersCollection.find(query)
-            const users = await cursor.toArray()
-            res.send(users)
+
+
+        // delete user ---------
+
+        app.delete('/users/:id', verifyJWT, verifyAdmin, async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await usersCollection.deleteOne(query)
+            res.send(result)
+
         })
 
 
