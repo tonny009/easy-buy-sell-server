@@ -66,6 +66,21 @@ async function run() {
             if (req.query.category) {
                 query = { category: req.query.category };
             }
+            if (req.query.advertise) {
+                query = { advertise: req.query.advertise };
+            }
+            if (req.query.report) {
+                query = { report: req.query.report };
+            }
+            const products = await productsCollection.find(query).toArray();
+            res.send(products);
+        });
+
+        app.get('/reportproducts', verifyJWT, verifyAdmin, async (req, res) => {
+            var query = {};
+            if (req.query.report) {
+                query = { report: req.query.report };
+            }
             const products = await productsCollection.find(query).toArray();
             res.send(products);
         });
@@ -80,21 +95,6 @@ async function run() {
             res.send(users);
         });
 
-        // get all users--------
-        // app.get('/users', async (req, res) => {
-        //     const query = {}
-        //     const cursor = usersCollection.find(query)
-        //     const users = await cursor.toArray()
-        //     res.send(users)
-        // })
-
-        // Get Single category all products
-        // app.get('/home/:id', async (req, res) => {
-        //     const id = req.params.id
-        //     const query = { _id: ObjectId(id) }
-        //     const home = await homesCollection.findOne(query)
-        //     res.send(home)
-        // })
 
         // ----for log in and sign up--------
         app.put('/user/:email', async (req, res) => {
@@ -142,6 +142,16 @@ async function run() {
             }
             const query = { email: email }
             const user = await usersCollection.findOne(query)
+            console.log(user);
+            res.send(user)
+        })
+
+        // Fot gettinh user status------
+        app.get('/userStatus/:email', async (req, res) => {
+            const email = req.params.email
+            const query = { email: email }
+            const user = await usersCollection.findOne(query)
+            console.log(user);
             res.send(user)
         })
 
@@ -163,6 +173,45 @@ async function run() {
             const product = req.body
             console.log(product)
             const result = await productsCollection.insertOne(product)
+            res.send(result)
+        })
+
+        // Get seller's products ----------
+        app.get('/products/:email', verifyJWT, async (req, res) => {
+            const email = req.params.email
+            const decodedEmail = req.decoded.email
+
+            if (email !== decodedEmail) {
+                return res.status(403).send({ message: 'forbidden access' })
+            }
+            const query = {
+                email: email,
+            }
+            const cursor = productsCollection.find(query)
+            const products = await cursor.toArray()
+            res.send(products)
+        })
+
+        // Delete the product -------------
+        app.delete('/product/:id', verifyJWT, async (req, res) => {
+            const id = req.params.id
+            const query = { _id: ObjectId(id) }
+            const result = await productsCollection.deleteOne(query)
+            res.send(result)
+        })
+
+        //Update a product with status--------
+        app.put('/product/:id', async (req, res) => {
+            const id = req.params.id
+            const updateStatus = req.body
+
+            const filter = { _id: ObjectId(id) }
+            const options = { upsert: true }
+            const updateDoc = {
+                $set: updateStatus
+            }
+            const result = await productsCollection.updateOne(filter, updateDoc, options)
+            console.log(result)
             res.send(result)
         })
 
