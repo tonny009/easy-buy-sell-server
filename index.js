@@ -8,6 +8,8 @@ const app = express();
 app.use(cors()); 0
 app.use(express.json());
 
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+// console.log('key is :', process.env.STRIPE_SECRET_KEY);
 
 var uri = `mongodb://${process.env.DB_USER}:${process.env.DB_PASSWORD}@ac-1bjla5v-shard-00-00.dieisxt.mongodb.net:27017,ac-1bjla5v-shard-00-01.dieisxt.mongodb.net:27017,ac-1bjla5v-shard-00-02.dieisxt.mongodb.net:27017/?ssl=true&replicaSet=atlas-n02o7o-shard-0&authSource=admin&retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
@@ -38,7 +40,9 @@ async function run() {
         const categoryCollection = client.db('easyBuySell').collection('categories');
         const usersCollection = client.db('easyBuySell').collection('users');
         const productsCollection = client.db('easyBuySell').collection('products');
-        // const usersCollection = client.db('easyBuySell').collection('users');
+        const bookingCollection = client.db('easyBuySell').collection('booking');
+
+
 
         // NOTE: make sure you use verifyAdmin after verifyJWT
         const verifyAdmin = async (req, res, next) => {
@@ -214,6 +218,72 @@ async function run() {
             console.log(result)
             res.send(result)
         })
+
+        // Get a single product
+        app.get('/singleproduct/:id', async (req, res) => {
+            const id = req.params.id
+            const query = { _id: ObjectId(id) }
+            const product = await productsCollection.findOne(query)
+            console.log('This is -----------', product);
+            res.send(product)
+        })
+
+
+        //Booking data posting in database-------
+        app.post('/bookings', async (req, res) => {
+            const booking = req.body;
+            console.log(booking);
+            const result = await bookingCollection.insertOne(booking);
+            res.send(result);
+        })
+
+        // Get Bookings
+        app.get('/bookings', verifyJWT, async (req, res) => {
+            let query = {}
+            const email = req.query.email
+            const decodedEmail = req.decoded.email
+            if (email !== decodedEmail) {
+                return res.status(403).send({ message: 'forbidden access' })
+            }
+            if (email) {
+                query = {
+                    buyerEmail: email,
+                }
+            }
+            const cursor = await bookingCollection.find(query)
+            const bookings = await cursor.toArray()
+            res.send(bookings)
+        })
+
+        // for getting specific booking ---------
+        app.get('/bookings/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const booking = await bookingCollection.findOne(query);
+            res.send(booking);
+        })
+
+        //all for payment sections.......
+
+        app.post('/create-payment-intent', async (req, res) => {
+            const booking = req.body;
+            const price = booking.price;
+            const amount = price * 100;
+            console.log(price);
+
+            const paymentIntent = await stripe.paymentIntents.create({
+                currency: 'usd',
+                amount: amount,
+                "payment_method_types": [
+                    "card"
+                ]
+            });
+            res.send({
+                clientSecret: paymentIntent.client_secret,
+            });
+        })
+
+
 
     }
     finally {
