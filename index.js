@@ -66,7 +66,7 @@ async function run() {
             res.send(categories)
         })
 
-        // get all products or based on category ---------
+        // get all products based on advertise and reported ---------
         app.get('/products', verifyJWT, async (req, res) => {
             var query = {};
             console.log(req.query);
@@ -76,16 +76,12 @@ async function run() {
                 return res.status(403).send({ message: 'forbidden access' })
             }
             else {
-                // if (req.query.category) {
-                //     query = { category: req.query.category };
-                // }
                 if (req.query.advertise) {
                     query = { advertise: req.query.advertise };
                 }
                 if (req.query.report) {
                     query = { report: req.query.report };
                 }
-
                 const products = await productsCollection.find(query).toArray();
                 res.send(products);
 
@@ -103,6 +99,7 @@ async function run() {
             res.send(products);
         });
 
+        // get all reported products (only for admin)-----------
         app.get('/reportproducts', verifyJWT, verifyAdmin, async (req, res) => {
             var query = {};
             if (req.query.report) {
