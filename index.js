@@ -287,7 +287,6 @@ async function run() {
         })
 
         //all for payment sections.......
-
         app.post('/create-payment-intent', async (req, res) => {
             const booking = req.body;
             const price = booking.price;
