@@ -41,6 +41,8 @@ async function run() {
         const usersCollection = client.db('easyBuySell').collection('users');
         const productsCollection = client.db('easyBuySell').collection('products');
         const bookingCollection = client.db('easyBuySell').collection('booking');
+        const paymentsCollection = client.db('easyBuySell').collection('payments');
+
 
 
 
@@ -57,7 +59,7 @@ async function run() {
             next();
         }
 
-
+        //all category list
         app.get('/categories', async (req, res) => {
             const query = {}
             const categories = await categoryCollection.find(query).toArray();
@@ -67,6 +69,12 @@ async function run() {
         // get all products or based on category ---------
         app.get('/products', async (req, res) => {
             var query = {};
+            console.log(req.query);
+            const email = req.query.email
+            const decodedEmail = req.decoded.email
+            if (email !== decodedEmail) {
+                return res.status(403).send({ message: 'forbidden access' })
+            }
             if (req.query.category) {
                 query = { category: req.query.category };
             }
@@ -119,7 +127,7 @@ async function run() {
             res.send({ result, token })
         })
 
-        // Update users details -----
+        // Update users verify status  -----
         app.put('/userupdate/:email', verifyJWT, verifyAdmin, async (req, res) => {
             const email = req.params.email
             const user = req.body
@@ -150,7 +158,7 @@ async function run() {
             res.send(user)
         })
 
-        // Fot gettinh user status------
+        // Fot getting user status verify or not for blue tik------
         app.get('/userStatus/:email', async (req, res) => {
             const email = req.params.email
             const query = { email: email }
@@ -237,7 +245,7 @@ async function run() {
             res.send(result);
         })
 
-        // Get Bookings
+        // Get orders
         app.get('/bookings', verifyJWT, async (req, res) => {
             let query = {}
             const email = req.query.email
@@ -281,6 +289,25 @@ async function run() {
             res.send({
                 clientSecret: paymentIntent.client_secret,
             });
+        })
+
+        //set payment details in db-------------
+        app.post('/payments', async (req, res) => {
+            console.log('Payment Details:', req.body);
+            const payment = req.body;
+            const result = await paymentsCollection.insertOne(payment);
+
+            //this is to update booking details
+            const id = payment.bookingId
+            const filter = { _id: ObjectId(id) }
+            const updatedDoc = {
+                $set: {
+                    paid: true,
+                    transactionId: payment.transactionId
+                }
+            }
+            const updatedResult = await bookingCollection.updateOne(filter, updatedDoc)
+            res.send(result);
         })
 
 
