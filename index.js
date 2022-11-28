@@ -67,7 +67,7 @@ async function run() {
         })
 
         // get all products or based on category ---------
-        app.get('/products', async (req, res) => {
+        app.get('/products', verifyJWT, async (req, res) => {
             var query = {};
             console.log(req.query);
             const email = req.query.email
@@ -75,14 +75,29 @@ async function run() {
             if (email !== decodedEmail) {
                 return res.status(403).send({ message: 'forbidden access' })
             }
+            else {
+                // if (req.query.category) {
+                //     query = { category: req.query.category };
+                // }
+                if (req.query.advertise) {
+                    query = { advertise: req.query.advertise };
+                }
+                if (req.query.report) {
+                    query = { report: req.query.report };
+                }
+
+                const products = await productsCollection.find(query).toArray();
+                res.send(products);
+
+            }
+        }
+        )
+        // get all products or based on category ---------
+        app.get('/catproducts', async (req, res) => {
+            var query = {};
+            console.log(req.query);
             if (req.query.category) {
                 query = { category: req.query.category };
-            }
-            if (req.query.advertise) {
-                query = { advertise: req.query.advertise };
-            }
-            if (req.query.report) {
-                query = { report: req.query.report };
             }
             const products = await productsCollection.find(query).toArray();
             res.send(products);
